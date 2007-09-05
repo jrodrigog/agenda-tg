@@ -1,0 +1,2 @@
+db_module=agenda.model
+history_dir=$base/agenda/sqlobject-history
