@@ -2,13 +2,25 @@ from turbogears import controllers, expose, flash, redirect
 import time
 from datetime import datetime
 from model import *
-
+import cherrypy
 # import logging
 # log = logging.getLogger("agenda.controllers")
 
 class Root(controllers.RootController):
     @expose(template="agenda.templates.indice")
     def index(self):
+        try:
+            # intentar incrementar en uno el contador visitas
+            cherrypy.session['visitas'] += 1
+        except KeyError:
+            # no existe la clave visita, esta es la primera
+            cherrypy.session['visitas'] = 1
+        
+        # acceso exclusivo
+        cherrypy.session.acquire_lock()
+        cherrypy.session['bloqueado'] = True
+        cherrypy.session.release_lock()
+        
         # Recuperar todas las personas, la vista requiere su identificador y nombre.
         personas = [ { "id" : persona.id, "nombre" : persona.nombre }
                      for persona in Persona.select() ]
@@ -17,7 +29,7 @@ class Root(controllers.RootController):
                     "persona_nombre" : cita.persona.nombre }
                    for cita in Cita.select() ]
         # Enviamos los datos a la vista.
-        return dict( personas = personas, citas = citas )
+        return dict( personas = personas, citas = citas, visitas = cherrypy.session['visitas'] )
     
     @expose(template="agenda.templates.persona")
     def editar_persona( self, id = None ):
